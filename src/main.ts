@@ -2,7 +2,7 @@ import 'leaflet/dist/leaflet.css';
 import './style.css';
 import L from 'leaflet';
 import { CONFIG, DEFAULT_CAR } from './config';
-import { project, plan, gmapsLegs, Station } from './plan';
+import { project, plan, gmapsLegs, Station, detMi, detMin } from './plan';
 
 type Car = { name: string; mpg: number; tank: number; reserve: number };
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -38,6 +38,9 @@ function renderRecent() {
   $('recent').querySelectorAll('button').forEach(b => (b as HTMLButtonElement).onclick = () => { const t = r[+b.dataset.i!]; $<HTMLInputElement>('a').value = t[0]; $<HTMLInputElement>('b').value = t[1]; });
 }
 renderRecent();
+const topEl = $<HTMLInputElement>('topoff');
+topEl.checked = ls.get('fr.topoff', true);
+topEl.onchange = () => ls.set('fr.topoff', topEl.checked);
 
 // ---- map ----
 const map = L.map('map').setView([45.6, -120.5], 6);
@@ -72,13 +75,14 @@ $('f').onsubmit = async e => {
     const coords: number[][] = route.geometry.coordinates;
     const { cum, proj } = project(coords, await stations());
     const total = cum[cum.length - 1];
-    const p = plan(total, proj, mpg, tank, start, reserve);
+    const p = plan(total, proj, mpg, tank, start, reserve, { topoff: topEl.checked });
+    const saOn = proj.filter(q => q.s.sa);
     const recent: [string, string][] = ls.get('fr.recent', []);
     ls.set('fr.recent', [[qa, qb], ...recent.filter(t => t[0] !== qa || t[1] !== qb)].slice(0, 6)); renderRecent();
     // map
     layer.clearLayers();
     const line = L.polyline(coords.map(c => [c[1], c[0]] as [number, number]), { color: '#0b3d91', weight: 4 }).addTo(layer);
-    for (const q of proj) if (q.s.sa && q.off <= 5) dot([q.s.lat, q.s.lon], '#16a34a', 4).addTo(layer);
+    for (const q of saOn) dot([q.s.lat, q.s.lon], '#16a34a', 6).bindPopup(`Space Age · mile ${q.along.toFixed(0)}${detMi(q) ? ` · detour ≈${detMi(q).toFixed(1)} mi` : ' · on route'}`).addTo(layer);
     dot([A[0], A[1]], '#0b3d91').bindPopup('A: ' + esc(A[2])).addTo(layer); dot([B[0], B[1]], '#0b3d91').bindPopup('B: ' + esc(B[2])).addTo(layer);
     p.stops.forEach((s, i) => dot([s.s.lat, s.s.lon], s.kind === 'sa' ? '#16a34a' : '#ea580c', 11).bindPopup(`Stop ${i + 1}: ${esc(s.s.name)}`).addTo(layer));
     map.fitBounds(line.getBounds(), { padding: [20, 20] });
@@ -91,9 +95,10 @@ $('f').onsubmit = async e => {
       `<h2>${p.totalMi.toFixed(0)} mi · ${(route.duration / 3600).toFixed(1)} h · ${p.stops.length} stop${p.stops.length === 1 ? '' : 's'}</h2>` +
       p.warnings.map(w => `<div class="warn">⚠️ ${esc(w)}</div>`).join('') +
       `<div class="stop"><b>A</b> ${esc(A[2])}<br><small>Leave with ${pc(start)} (${g(tank * start / 100)})</small></div>` +
-      p.stops.map((s, i) => `<div class="stop ${s.kind === 'sa' ? 'sa' : 'fb'}" data-kind="${s.kind}"><b>Stop ${i + 1}</b> ${esc(s.s.name)}${s.s.brand && s.s.brand !== s.s.name ? ' (' + esc(s.s.brand) + ')' : ''}<span class="tag ${s.kind === 'sa' ? 'sa' : 'fb'}">${s.kind === 'sa' ? 'SPACE AGE' : 'FALLBACK'}</span><br>
-        <small>${s.milesFromPrev.toFixed(0)} mi from previous · arrive with ${pc(s.arrivePct)} (${g(s.arriveGal)}) · fill up</small>${s.warn ? `<div class="warn">⚠️ ${esc(s.warn)}</div>` : ''}</div>`).join('') +
+      p.stops.map((s, i) => `<div class="stop ${s.kind === 'sa' ? 'sa' : 'fb'}" data-kind="${s.kind}"><b>Stop ${i + 1}</b> ${esc(s.s.name)}${s.s.brand && s.s.brand !== s.s.name ? ' (' + esc(s.s.brand) + ')' : ''}<span class="tag ${s.kind === 'sa' ? 'sa' : 'fb'}">${s.kind === 'sa' ? 'SPACE AGE' : 'FALLBACK'}</span>${s.topoff ? '<span class="tag top">TOP OFF · optional</span>' : ''}<br>
+        <small>${s.milesFromPrev.toFixed(0)} mi from previous · arrive with ${pc(s.arrivePct)} (${g(s.arriveGal)}) · ${s.topoff ? 'top off' : 'fill up'}</small>${s.warn ? `<div class="warn">⚠️ ${esc(s.warn)}</div>` : ''}</div>`).join('') +
       `<div class="stop"><b>B</b> ${esc(B[2])}<br><small>${lastMi.toFixed(0)} mi from previous · arrive with ${pc(p.arrivePct)} (${g(p.arriveGal)})</small></div>` +
+      `<div class="salist"><b>Space Age on route (${saOn.length})</b>${saOn.length ? '<ul>' + saOn.map(q => `<li>${esc(q.s.name)} · mile ${q.along.toFixed(0)} · ${detMi(q) ? `detour ≈${detMi(q).toFixed(1)} mi each way (~${detMin(q).toFixed(0)} min)` : 'on route'}</li>`).join('') + '</ul>' : '<br><small>None within the corridor or short-detour radius.</small>'}</div>` +
       legs.map((u, i) => `<a class="leg" target="_blank" rel="noopener" href="${u}">Open leg ${i + 1} in Google Maps</a>`).join('');
     status('Done.');
   } catch (err) { status('⚠️ ' + (err as Error).message); }

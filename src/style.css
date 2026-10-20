@@ -12,3 +12,5 @@ button{padding:12px 14px;font-size:16px;border:0;border-radius:8px;background:#0
 .warn{background:#fff4d6;border:1px solid #f0b400;border-radius:8px;padding:8px;margin:6px 0;font-size:14px}
 a.leg{display:block;text-align:center;background:#1a73e8;color:#fff;padding:12px;border-radius:8px;margin:6px 0;text-decoration:none}
 #recent button{background:#eef;color:#0b3d91;font-size:13px;padding:6px 8px;margin:3px 4px 0 0}footer{font-size:12px;color:#666;margin:16px 0}
+.chk{display:flex;gap:8px;align-items:center;font-size:15px;color:#111}.chk input{width:22px;height:22px;margin:0}
+.dot.small{width:8px;height:8px}.tag.top{background:#0e7490}.salist{background:#fff;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:14px}.salist li{margin:3px 0}

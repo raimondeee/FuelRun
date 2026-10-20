@@ -16,6 +16,8 @@ Phone-first PWA that plans gas stops along a road trip, **Space Age stations fir
   4. fallback with a detour
 
   Fill to full and repeat. Detours and fallbacks are flagged with warnings.
+- **Safety buffer:** fuel use is planned on OSRM miles × 1.05, because Google often picks a slightly longer road and real MPG varies.
+- **Top off at Space Age** (toggle, on by default, saved): this adds an optional stop at the furthest reachable Space Age when you'd arrive at B below 50% (detour up to about 15 minutes round trip), or when a Space Age is within about 5 minutes of detour. You get at most one top-off per Space Age cluster (10 km), and only if you'd arrive there at 90% or less. Every Space Age within the corridor or detour radius is shown on the map and in the *Space Age on route* list.
 - **Output:** a stop list with miles between stops and fuel (% and gal) on arrival, a Leaflet map (green = Space Age, orange = fallback), and chained Google Maps directions links (≤3 waypoints each, `|` encoded as `%7C`, each link under 2,048 characters; each leg starts where the previous one ended). No Google API key is needed.
 - **Offline:** the service worker uses a build-hashed cache and is network-first for `index.html`. It isn't registered on `file://`.
 
@@ -26,6 +28,9 @@ npm run stations   # optional: rebuild station data from Overpass
 npm run dev
 VITE_BASE=/FuelRun/ npm run build
 ```
+
+## Tests
+`npm test` runs the planner tests, including the McMinnville→Spokane regression.
 
 ## Fixing station data
 Edit `data/overrides.json`:

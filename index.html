@@ -27,12 +27,13 @@
     <label>Start fuel %<input id="start" type="number" min="0" max="100" value="100" required /></label>
     <label>Reserve %<input id="reserve" type="number" min="0" max="80" value="25" required /></label>
   </div>
+  <label class="chk"><input type="checkbox" id="topoff" checked /> Top off at Space Age <small>(optional extra stops)</small></label>
   <button id="go">Plan trip</button>
   <div id="recent"></div>
 </form>
 <div id="status" role="status"></div>
 <div id="map"></div>
-<div class="legend"><span><i class="dot sa"></i>Space Age</span><span><i class="dot fb"></i>Fallback (other brand)</span><span><i class="dot ab"></i>A / B</span></div>
+<div class="legend"><span><i class="dot sa"></i>Space Age</span><span><i class="dot fb"></i>Fallback (other brand)</span><span><i class="dot sa small"></i>Space Age on route</span><span><i class="dot ab"></i>A / B</span></div>
 <section id="out"></section>
 <footer>Stations, routing &amp; geocoding: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> (ODbL), OSRM, Nominatim. Estimates only — watch your gauge.</footer>
 </main>
