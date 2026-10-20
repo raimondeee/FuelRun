@@ -1,0 +1,28 @@
+name: Refresh stations
+on:
+  schedule: [{ cron: '17 9 * * 1' }]   # weekly, Monday 09:17 UTC
+  workflow_dispatch:
+permissions: { contents: write, pages: write }
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+      - run: node scripts/build-stations.mjs
+      - name: Commit stations if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/stations.json
+          git diff --cached --quiet || git commit -m "Refresh stations from Overpass"
+          git push
+      - name: Build and publish gh-pages
+        run: |
+          VITE_BASE=/FuelRun/ npm run build
+          touch dist/.nojekyll
+          cd dist && git init -q -b gh-pages && git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qm "Deploy"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" gh-pages

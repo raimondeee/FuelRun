@@ -1,0 +1,6 @@
+{
+  "_comment": "Manual fixes applied after the Overpass pull. add: extra stations; remove: OSM ids (type/id) to drop; patch: OSM id -> fields to override.",
+  "add": [],
+  "remove": [],
+  "patch": {}
+}

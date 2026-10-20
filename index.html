@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b3d91" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon.svg" />
+<title>FuelRun</title>
+</head>
+<body>
+<header><h1>⛽ FuelRun</h1><span class="sub">Space Age first</span></header>
+<main>
+<form id="f">
+  <label>From (A)<input id="a" required placeholder="Home address or city" /></label>
+  <label>To (B)<input id="b" required placeholder="Rink / city" /></label>
+  <div class="row">
+    <label>Car<select id="car"></select></label>
+    <button type="button" id="savecar" class="sec">Save car</button>
+    <button type="button" id="delcar" class="sec">Delete</button>
+  </div>
+  <label>Car name<input id="carname" /></label>
+  <div class="grid">
+    <label>MPG<input id="mpg" type="number" step="0.1" min="1" required /></label>
+    <label>Tank (gal)<input id="tank" type="number" step="0.1" min="1" required /></label>
+    <label>Start fuel %<input id="start" type="number" min="0" max="100" value="100" required /></label>
+    <label>Reserve %<input id="reserve" type="number" min="0" max="80" value="25" required /></label>
+  </div>
+  <button id="go">Plan trip</button>
+  <div id="recent"></div>
+</form>
+<div id="status" role="status"></div>
+<div id="map"></div>
+<div class="legend"><span><i class="dot sa"></i>Space Age</span><span><i class="dot fb"></i>Fallback (other brand)</span><span><i class="dot ab"></i>A / B</span></div>
+<section id="out"></section>
+<footer>Stations, routing &amp; geocoding: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> (ODbL), OSRM, Nominatim. Estimates only — watch your gauge.</footer>
+</main>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
