@@ -1,6 +1,6 @@
 # ⛽ FuelRun
 
-Phone-first PWA that plans gas stops along a road trip, **Space Age stations first** (Pacific Northwest chain), falling back to any brand only when no Space Age is reachable within your reserve, even with a short detour.
+Phone-first PWA that plans gas stops along a road trip, **your preferred brands first**: Space Age (a Pacific Northwest chain) by default, plus optional Maverik, ARCO, Costco (members only), NomNom and tribal-owned stations, in the order you choose. It falls back to any other brand only when no preferred station is reachable within your reserve, even with a short detour.
 
 **Live:** https://raimondeee.github.io/FuelRun/
 
@@ -20,6 +20,25 @@ Phone-first PWA that plans gas stops along a road trip, **Space Age stations fir
 - **Top off at Space Age** (toggle, on by default, saved): this adds an optional stop at the furthest reachable Space Age when you'd arrive at B below 50% (detour up to about 15 minutes round trip), or when a Space Age is within about 5 minutes of detour. You get at most one top-off per Space Age cluster (10 km), and only if you'd arrive there at 90% or less. Every Space Age within the corridor or detour radius is shown on the map and in the *Space Age on route* list.
 - **Output:** a stop list with miles between stops and fuel (% and gal) on arrival, a Leaflet map (green = Space Age, orange = fallback), and chained Google Maps directions links (≤3 waypoints each, `|` encoded as `%7C`, each link under 2,048 characters; each leg starts where the previous one ended). No Google API key is needed.
 - **Offline:** the service worker uses a build-hashed cache and is network-first for `index.html`. It isn't registered on `file://`.
+
+## Preferred brands
+Brand matching happens when the station data is built (`scripts/brands.mjs`). It checks `brand:wikidata` and `operator:wikidata` first, then `brand`, `operator` and `name`.
+- A different brand's wikidata on a station overrides a matching name. For example, a Chevron named "Space Age" doesn't count as Space Age.
+- NomNom is the exception: it's a store chain that sells other fuel brands, so a name match always counts.
+- ampm (`Q306960`) counts as ARCO.
+- Costco is always members only.
+- **Tribal-owned stations** are matched conservatively, only on explicit signals in the `brand`, `operator`, `owner` or `name` tags: "Tribe", "Tribal", "Confederated", "Band of", or a tribe or tribal-enterprise name that isn't also a common place name (for example Tulalip, Lummi, Makah, Swinomish, Nisqually, Yakamart, Colville Fuels, Kamilche Trading Post). Town names like Spokane, Puyallup, Chehalis, Colville, Siletz and Umatilla are deliberately excluded. Tribal ownership doesn't depend on the fuel brand, so a tribal Chevron still counts as tribal.
+
+## Planning around your own stops
+In the results, the *Preferred stations on route* list has **Add as stop** and **Remove** buttons. The plan recalculates around the stops you pick: fuel on arrival, required stops, top-offs and the Google Maps legs.
+
+## Vehicles
+You can save several vehicles and pick one as the default (★). The default is a 2022 Subaru Ascent (Base): 27 MPG, 19.3 gal.
+- *Look up MPG* uses the free fueleconomy.gov web service, which allows browser requests (CORS: `*`). It fills in highway MPG.
+- Enter the tank size yourself.
+
+## Map
+The map sits at the bottom of the results. On touch screens, one finger scrolls the page; use two fingers to pan or zoom the map.
 
 ## Develop
 ```sh

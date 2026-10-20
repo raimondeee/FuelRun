@@ -1,9 +1,9 @@
 import { CONFIG } from './config';
-export type Station = { lat: number; lon: number; name: string; brand: string; sa: boolean };
+export type Station = { lat: number; lon: number; name: string; brand: string; key: string; members: boolean; sa: boolean };
 export type Proj = { s: Station; along: number; off: number; idx: number }; // along: miles; off: km
-export type Stop = { s: Station; along: number; detourMi: number; milesFromPrev: number; arriveGal: number; arrivePct: number; kind: 'sa' | 'fallback'; topoff: boolean; warn?: string; idx: number };
+export type Stop = { s: Station; along: number; detourMi: number; milesFromPrev: number; arriveGal: number; arrivePct: number; kind: 'pref' | 'fallback' | 'manual'; topoff: boolean; warn?: string; idx: number };
 export type Plan = { stops: Stop[]; totalMi: number; arriveGal: number; arrivePct: number; warnings: string[] };
-export type Opts = { topoff?: boolean; buffer?: number };
+export type Opts = { topoff?: boolean; buffer?: number; prefs?: string[]; manual?: Proj[] };
 const KM = 0.621371;
 export function hav(a: number, b: number, c: number, d: number) {
   const r = Math.PI / 180, x = Math.sin((c - a) * r / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin((d - b) * r / 2) ** 2;
@@ -32,57 +32,76 @@ export const detMin = (p: Proj) => 2 * detMi(p) / CONFIG.detourMph * 60;
 
 /**
  * Plan stops. Fuel use is computed on route miles × buffer (default CONFIG.distBuffer).
- * Required stops: when B can't be reached above the reserve, take the furthest-along reachable
- * Space Age (on route, then short detour); only if none, a fallback of any brand.
- * Optional top-offs (opts.topoff): when B is reachable but you'd arrive below topOffBelowPct, or a
- * Space Age is within topOffMaxMin of detour, stop at the furthest-along reachable Space Age —
- * at most one per Space Age cluster, and only if you'd arrive there at ≤ topOffMaxStartPct.
+ * prefs: ordered preferred brand keys (default ['sa']). Required stops: when the next target
+ * (next manual stop or B) can't be reached above the reserve, try each preferred brand in order —
+ * furthest-along reachable on the route, then via short detour — and only then any-brand fallback.
+ * Manual stops (opts.manual) are always visited; the plan recalculates around them.
+ * Optional top-offs (opts.topoff): as before, but for any preferred brand (in preference order),
+ * at most one per cluster, only if you'd arrive at ≤ topOffMaxStartPct.
  */
 export function plan(total: number, proj: Proj[], mpg: number, tank: number, startPct: number, reservePct: number, opts: Opts = {}): Plan {
-  const buf = opts.buffer ?? CONFIG.distBuffer, topoff = opts.topoff ?? true;
-  const use = (mi: number) => mi * buf / mpg; // gallons for road miles
+  const buf = opts.buffer ?? CONFIG.distBuffer, topoff = opts.topoff ?? true, prefs = opts.prefs ?? ['sa'];
+  const manual = [...(opts.manual || [])].sort((a, b) => a.along - b.along);
+  const use = (mi: number) => mi * buf / mpg;
   const reserve = tank * reservePct / 100;
-  let fuel = tank * startPct / 100, pos = 0, extra = 0; // extra: miles to rejoin route after a detour
+  let fuel = tank * startPct / 100, pos = 0, extra = 0;
   const stops: Stop[] = [], warnings: string[] = [];
-  const usedClusters: Station[] = [];
-  const sameCluster = (s: Station) => usedClusters.some(u => hav(u.lat, u.lon, s.lat, s.lon) <= CONFIG.clusterKm);
+  const used: Station[] = [];
+  const sameCluster = (s: Station) => used.some(u => hav(u.lat, u.lon, s.lat, s.lon) <= CONFIG.clusterKm);
+  const isPref = (s: Station) => prefs.includes(s.key);
+  const rank = (s: Station) => { const i = prefs.indexOf(s.key); return i < 0 ? 99 : i; };
+  const label = (s: Station) => s.name;
   if (fuel <= reserve) warnings.push(`Starting fuel (${startPct}%) is at or below the ${reservePct}% reserve — first stop uses reserve fuel.`);
-  for (let guard = 0; guard < 50; guard++) {
-    const arriveB = fuel - use(total - pos + extra);
-    const lowStart = fuel <= reserve && stops.length === 0;
-    const usable = lowStart ? fuel : fuel - reserve;
-    const limit = pos + usable * mpg / buf - extra; // furthest along-route mile reachable above reserve
-    const minAlong = stops.length ? pos + CONFIG.minHopMi : pos;
-    const fuelAt = (p: Proj) => fuel - use(p.along - pos + extra + detMi(p));
-    const pick = (pred: (p: Proj) => boolean) => {
-      let b: Proj | undefined;
-      for (const p of proj) if (pred(p) && p.along > minAlong && p.along < total && p.along + detMi(p) <= limit && (!b || p.along > b.along)) b = p;
-      return b;
-    };
-    const on = (p: Proj) => p.off <= CONFIG.onRouteKm;
-    let p: Proj | undefined, kind: 'sa' | 'fallback' = 'sa', warn: string | undefined, isTop = false;
-    if (arriveB >= reserve) {
-      if (!topoff) break;
-      const low = arriveB / tank * 100 < CONFIG.topOffBelowPct;
-      const ok = (q: Proj) => q.s.sa && !sameCluster(q.s) && fuelAt(q) / tank * 100 <= CONFIG.topOffMaxStartPct && detMin(q) <= (low ? CONFIG.topOffLowMaxMin : CONFIG.topOffMaxMin);
-      p = pick(ok);
-      if (!p) break;
-      isTop = true;
-      if (detMi(p) > 0) warn = `Optional top-off: detour ≈${detMi(p).toFixed(1)} mi (~${detMin(p).toFixed(0)} min round trip).`;
-    } else {
-      p = pick(q => q.s.sa && on(q));
-      if (!p) { p = pick(q => q.s.sa); if (p) warn = `Detour ≈${detMi(p).toFixed(1)} mi each way to reach this Space Age.`; }
-      if (!p) { kind = 'fallback'; p = pick(on); if (p) warn = 'No Space Age reachable within reserve — fallback station.'; }
-      if (!p) { p = pick(() => true); if (p) warn = `No Space Age reachable — fallback station with ≈${detMi(p).toFixed(1)} mi detour each way.`; }
-      if (!p) { warnings.push(`No station of any brand reachable from mile ${pos.toFixed(0)}. Fuel up before this point!`); break; }
-      if (lowStart) warn = (warn ? warn + ' ' : '') + 'Reached using reserve fuel.';
-    }
+  const push = (p: Proj, kind: Stop['kind'], isTop: boolean, warn?: string) => {
     const d = detMi(p), miles = p.along - pos + extra + d;
     fuel -= use(miles);
     stops.push({ s: p.s, along: p.along, detourMi: d, milesFromPrev: miles, arriveGal: fuel, arrivePct: fuel / tank * 100, kind, topoff: isTop, warn, idx: p.idx });
-    if (warn && !isTop) warnings.push(`Stop ${stops.length} (${p.s.name}): ${warn}`);
-    if (p.s.sa) usedClusters.push(p.s);
+    if (fuel < reserve - 1e-9 && kind === 'manual') warn = (warn ? warn + ' ' : '') + `Arrives below the ${reservePct}% reserve.`, stops[stops.length - 1].warn = warn;
+    if (fuel < 0) warnings.push(`You'd run out of fuel before stop ${stops.length} (${label(p.s)}).`);
+    if (warn && !isTop) warnings.push(`Stop ${stops.length} (${label(p.s)}): ${warn}`);
+    if (isPref(p.s)) used.push(p.s);
     fuel = tank; pos = p.along; extra = d;
+  };
+  for (let guard = 0; guard < 60; guard++) {
+    const next = manual.find(m => m.along >= pos && !stops.some(s => s.s === m.s));
+    const tAlong = next ? next.along : total, tExtra = next ? detMi(next) : 0;
+    const arriveT = fuel - use(tAlong - pos + extra + tExtra);
+    const lowStart = fuel <= reserve && stops.length === 0;
+    const usable = lowStart ? fuel : fuel - reserve;
+    const limit = pos + usable * mpg / buf - extra;
+    const minAlong = stops.length ? pos + CONFIG.minHopMi : pos;
+    const fuelAt = (p: Proj) => fuel - use(p.along - pos + extra + detMi(p));
+    // best = lowest preference rank, then furthest along
+    const pick = (pred: (p: Proj) => boolean, byRank = false) => {
+      let b: Proj | undefined;
+      for (const p of proj) if (pred(p) && p.along > minAlong && p.along < tAlong && p.along + detMi(p) <= limit &&
+        (!b || (byRank ? rank(p.s) < rank(b.s) || (rank(p.s) === rank(b.s) && p.along > b.along) : p.along > b.along))) b = p;
+      return b;
+    };
+    const on = (p: Proj) => p.off <= CONFIG.onRouteKm;
+    if (arriveT >= reserve) {
+      if (topoff) {
+        const low = arriveT / tank * 100 < CONFIG.topOffBelowPct;
+        const p = pick(q => isPref(q.s) && !sameCluster(q.s) && q.along <= tAlong - CONFIG.topOffMinBeforeMi && fuelAt(q) / tank * 100 <= CONFIG.topOffMaxStartPct && detMin(q) <= (low ? CONFIG.topOffLowMaxMin : CONFIG.topOffMaxMin), true);
+        if (p) { push(p, 'pref', true, detMi(p) > 0 ? `Optional top-off: detour ≈${detMi(p).toFixed(1)} mi (~${detMin(p).toFixed(0)} min round trip).` : undefined); continue; }
+      }
+      if (!next) break;
+      push(next, 'manual', false); continue;
+    }
+    let p: Proj | undefined, kind: Stop['kind'] = 'pref', warn: string | undefined;
+    for (const k of prefs) {
+      p = pick(q => q.s.key === k && on(q)); if (p) break;
+      p = pick(q => q.s.key === k); if (p) { warn = `Detour ≈${detMi(p).toFixed(1)} mi each way to reach this ${p.s.name}.`; break; }
+    }
+    if (!p) { kind = 'fallback'; p = pick(on); if (p) warn = 'No preferred-brand station reachable within reserve — fallback station.'; }
+    if (!p) { p = pick(() => true); if (p) warn = `No preferred-brand station reachable — fallback station with ≈${detMi(p).toFixed(1)} mi detour each way.`; }
+    if (!p) {
+      if (next) { warnings.push(`Manual stop ${label(next.s)} can't be reached above the reserve and no station is reachable before it.`); push(next, 'manual', false); continue; }
+      warnings.push(`No station of any brand reachable from mile ${pos.toFixed(0)}. Fuel up before this point!`); break;
+    }
+    if (p.s.members) warn = (warn ? warn + ' ' : '') + 'Members only.';
+    if (lowStart) warn = (warn ? warn + ' ' : '') + 'Reached using reserve fuel.';
+    push(p, kind, false, warn);
   }
   const last = total - pos + extra; fuel -= use(last);
   return { stops, totalMi: total + stops.reduce((a, s) => a + 2 * s.detourMi, 0), arriveGal: fuel, arrivePct: fuel / tank * 100, warnings };

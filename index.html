@@ -15,27 +15,55 @@
 <form id="f">
   <label>From (A)<input id="a" required placeholder="Home address or city" /></label>
   <label>To (B)<input id="b" required placeholder="Rink / city" /></label>
-  <div class="row">
-    <label>Car<select id="car"></select></label>
-    <button type="button" id="savecar" class="sec">Save car</button>
-    <button type="button" id="delcar" class="sec">Delete</button>
-  </div>
-  <label>Car name<input id="carname" /></label>
+
+  <section class="card" id="vehicle">
+    <div class="row"><label>Vehicle<select id="car"></select></label></div>
+    <div class="row btns">
+      <button type="button" id="editcar" class="sec">✏️ Edit</button>
+      <button type="button" id="newcar" class="sec">＋ Add vehicle</button>
+      <button type="button" id="defcar" class="sec">★ Make default</button>
+      <button type="button" id="delcar" class="sec">Delete</button>
+    </div>
+    <div id="caredit" hidden>
+      <h3 id="caredit-title">Edit vehicle</h3>
+      <label>Name<input id="carname" /></label>
+      <div class="grid">
+        <label>MPG (highway)<input id="mpg" type="number" step="0.1" min="1" /></label>
+        <label>Tank (gal)<input id="tank" type="number" step="0.1" min="1" /></label>
+      </div>
+      <details id="lookup"><summary>Look up MPG (fueleconomy.gov)</summary>
+        <div class="grid">
+          <label>Year<select id="ly"></select></label>
+          <label>Make<select id="lm" disabled></select></label>
+          <label>Model<select id="lmo" disabled></select></label>
+          <label>Version<select id="lo" disabled></select></label>
+        </div>
+        <small id="lres">Fills highway MPG and name. Enter the tank size yourself.</small>
+      </details>
+      <div class="row btns"><button type="button" id="savecar">Save vehicle</button><button type="button" id="cancelcar" class="sec">Cancel</button></div>
+    </div>
+  </section>
+
   <div class="grid">
-    <label>MPG<input id="mpg" type="number" step="0.1" min="1" required /></label>
-    <label>Tank (gal)<input id="tank" type="number" step="0.1" min="1" required /></label>
     <label>Start fuel %<input id="start" type="number" min="0" max="100" value="100" required /></label>
     <label>Reserve %<input id="reserve" type="number" min="0" max="80" value="25" required /></label>
   </div>
-  <label class="chk"><input type="checkbox" id="topoff" checked /> Top off at Space Age <small>(optional extra stops)</small></label>
+
+  <section class="card"><b>Preferred brands</b> <small>(in order; used before any other station)</small>
+    <ul id="prefs"></ul>
+  </section>
+  <label class="chk"><input type="checkbox" id="topoff" checked /> Top off at preferred brands <small>(optional extra stops)</small></label>
   <button id="go">Plan trip</button>
   <div id="recent"></div>
 </form>
 <div id="status" role="status"></div>
-<div id="map"></div>
-<div class="legend"><span><i class="dot sa"></i>Space Age</span><span><i class="dot fb"></i>Fallback (other brand)</span><span><i class="dot sa small"></i>Space Age on route</span><span><i class="dot ab"></i>A / B</span></div>
 <section id="out"></section>
-<footer>Stations, routing &amp; geocoding: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> (ODbL), OSRM, Nominatim. Estimates only — watch your gauge.</footer>
+<section id="mapwrap" hidden>
+  <div class="legend" id="legend"></div>
+  <div id="map"></div>
+  <small class="hint">Map: use two fingers to pan/zoom on phones, so one-finger scrolling keeps moving the page.</small>
+</section>
+<footer>Stations, routing &amp; geocoding: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> (ODbL), OSRM, Nominatim. MPG lookup: fueleconomy.gov. Estimates only — watch your gauge.</footer>
 </main>
 <script type="module" src="/src/main.ts"></script>
 </body>

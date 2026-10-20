@@ -14,3 +14,11 @@ a.leg{display:block;text-align:center;background:#1a73e8;color:#fff;padding:12px
 #recent button{background:#eef;color:#0b3d91;font-size:13px;padding:6px 8px;margin:3px 4px 0 0}footer{font-size:12px;color:#666;margin:16px 0}
 .chk{display:flex;gap:8px;align-items:center;font-size:15px;color:#111}.chk input{width:22px;height:22px;margin:0}
 .dot.small{width:8px;height:8px}.tag.top{background:#0e7490}.salist{background:#fff;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:14px}.salist li{margin:3px 0}
+.card{background:#fff;border-radius:8px;padding:8px 10px;margin:8px 0}.btns{flex-wrap:wrap;gap:6px}.btns button{flex:1 1 auto}
+#prefs{list-style:none;padding:0;margin:6px 0}#prefs li{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #eee}
+#prefs li label{flex:1;display:flex;align-items:center;gap:8px;margin:0;font-size:15px;color:#111}#prefs input{width:22px;height:22px;margin:0}
+#prefs button{padding:4px 10px;margin:0;font-size:14px}
+.stop{border-left-color:var(--c,#0b3d91)}.tag{background:var(--c,#555)}.stop.manual{outline:2px dashed #333}
+.rs{list-style:none;padding:0}.rs li{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #eee}.rs li div{flex:1}
+.rs button{padding:6px 10px;margin:0;font-size:14px}.rs button.rm{background:#b91c1c}
+.hint{color:#666;font-size:12px}h3{margin:8px 0 2px;font-size:16px}
