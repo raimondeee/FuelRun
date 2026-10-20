@@ -1,5 +1,5 @@
-const CACHE = 'fuelrun-0a2478804a62';
-const ASSETS = ["./","stations.json","manifest.webmanifest","icon.svg","assets/index-BzHQu3O2.js","assets/index-C-uLa_1T.css"];
+const CACHE = 'fuelrun-8791e32c9d1a';
+const ASSETS = ["./","stations.json","manifest.webmanifest","icon.svg","assets/index-Bym37cYU.css","assets/index-C_KMlM9Y.js"];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {
